@@ -1,11 +1,18 @@
-pysqlite3-binary
-langchain
-chromadb
-unstructured
-sentence-transformers
-faiss-cpu
-tiktoken
-openai
-pypdf
-loguru
-docx2txt
+# Core dependencies
+streamlit>=1.31.0
+pandas>=2.1.0
+
+# AI/ML libraries
+openai>=1.12.0
+anthropic>=0.18.1
+google-generativeai>=0.3.2
+
+# Data visualization
+plotly>=5.18.0
+
+# Utilities
+python-dateutil>=2.8.2
+pytz>=2024.1
+
+# Optional but recommended for better performance
+streamlit-analytics>=0.4.1
