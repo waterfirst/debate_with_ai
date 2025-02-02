@@ -295,24 +295,42 @@ def save_discussion():
     if not st.session_state.messages:
         return
 
-    content = [
-        f"토론 주제: {st.session_state.topic}\n",
-        f"일시: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}\n",
-        "\n=== 토론 내용 ===\n",
-    ]
+    # 저장할 데이터 준비
+    timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+    session_data = {
+        "topic": st.session_state.topic,
+        "timestamp": timestamp,
+        "messages": st.session_state.messages,
+        "metadata": {
+            "participants": list(set(msg["name"] for msg in st.session_state.messages)),
+            "message_count": len(st.session_state.messages),
+            "duration": str(
+                datetime.now()
+                - datetime.strptime(st.session_state.messages[0]["time"], "%H:%M:%S")
+            ),
+        },
+    }
 
-    for msg in st.session_state.messages:
-        content.append(f"\n[{msg['time']}] {msg['name']}: \n{msg['content']}\n")
-
-    formatted_content = "\n".join(content)
-
+    # 1. 파일 다운로드 옵션
+    json_str = json.dumps(session_data, ensure_ascii=False, indent=2)
     st.download_button(
-        label="📥 토론 내용 저장",
-        data=formatted_content.encode("utf-8"),
-        file_name=f"AI_토론_{datetime.now().strftime('%Y%m%d_%H%M%S')}.txt",
-        mime="text/plain",
-        use_container_width=True,
+        label="💾 JSON 파일로 저장",
+        data=json_str,
+        file_name=f"AI_토론_{timestamp}.json",
+        mime="application/json",
     )
+
+    # 2. 복사 가능한 텍스트 형태로 표시
+    with st.expander("📋 토론 내용 텍스트"):
+        st.code(json_str, language="json")
+        st.info("위 내용을 복사하여 나중에 불러올 수 있습니다.")
+
+    # 3. 요약 정보 표시
+    with st.expander("📊 토론 요약"):
+        st.write("주제:", session_data["topic"])
+        st.write("참여자:", ", ".join(session_data["metadata"]["participants"]))
+        st.write("메시지 수:", session_data["metadata"]["message_count"])
+        st.write("진행 시간:", session_data["metadata"]["duration"])
 
 
 def save_session_to_json():
@@ -638,3 +656,79 @@ def main():
 
 if __name__ == "__main__":
     main()
+
+
+def show_api_status():
+    """API 설정 상태를 확인하고 안내 메시지 표시"""
+    if not st.session_state.ai_generator.initialization_successful:
+        st.warning(
+            """
+        ⚠️ AI 응답 기능을 사용하기 위해서는 API 키 설정이 필요합니다.
+        
+        현재 사용 가능한 AI: {available_models}
+        
+        API 키 설정 방법:
+        1. OpenAI API 키: https://platform.openai.com
+        2. Anthropic API 키: https://console.anthropic.com
+        3. Gemini API 키: https://makersuite.google.com/app/apikey
+        
+        설정된 API 키에 해당하는 AI만 토론에 참여할 수 있습니다.
+        """.format(
+                available_models=(
+                    ", ".join(st.session_state.ai_generator.available_models)
+                    if st.session_state.ai_generator.available_models
+                    else "없음"
+                )
+            )
+        )
+
+
+class AIResponseGenerator:
+    """AI 응답 생성을 관리하는 클래스"""
+
+    def __init__(self):
+        self.initialization_successful = False
+        self.available_models = []
+
+        try:
+            # OpenAI API 초기화 시도
+            if "OPENAI_KEY" in st.secrets:
+                self.openai_client = OpenAI(api_key=st.secrets["OPENAI_KEY"])
+                self.available_models.append("지피")
+
+            # Anthropic API 초기화 시도
+            if "ANTHROPIC_KEY" in st.secrets:
+                self.anthropic_client = Anthropic(api_key=st.secrets["ANTHROPIC_KEY"])
+                self.available_models.append("로드")
+
+            # Gemini API 초기화 시도
+            if "GEMINI_KEY" in st.secrets:
+                genai.configure(api_key=st.secrets["GEMINI_KEY"])
+                self.available_models.append("재민")
+
+            if self.available_models:
+                self.initialization_successful = True
+            else:
+                st.warning("⚠️ API 키가 설정되지 않아 AI 응답 기능이 제한됩니다.")
+
+        except Exception as e:
+            st.error(f"API 초기화 오류: {str(e)}")
+            self.initialization_successful = False
+
+    def generate_response(self, ai_name, topic, messages):
+        """AI 별 응답 생성"""
+        if not self.initialization_successful:
+            return "🔒 API 키가 설정되지 않아 응답할 수 없습니다."
+
+        if ai_name not in self.available_models:
+            return f"🔒 {ai_name}의 API 키가 설정되지 않아 응답할 수 없습니다."
+
+        try:
+            model_config = AI_MODELS[ai_name]
+            prompt = self.format_prompt(messages, topic)
+
+            # 각 AI 모델별 응답 생성 로직...
+
+        except Exception as e:
+            st.error(f"{ai_name} 응답 생성 오류: {str(e)}")
+            return f"[시스템] {ai_name}의 응답 생성 중 오류가 발생했습니다."
