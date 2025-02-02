@@ -33,7 +33,7 @@ AI_MODELS = {
         다른 참여자들의 의견에 대해 윤리적, 철학적 관점에서 심도 있는 분석을 제공하세요.
         특히 인간 가치와 도덕적 측면을 고려하여 토론을 더 깊이 있게 만드세요.
         때로는 도발적인 질문을 통해 토론을 활성화하되, 
-        응답은 250자 이내로 친근한 반말로 간단명료하게 작성하세요.""",
+        응답은 300자 이내로 친근한 반말로 간단명료하게 작성하세요.""",
     },
     "재민": {
         "name": "재민",
@@ -82,7 +82,7 @@ class AIResponseGenerator:
 4. 다른 참여자의 의견을 발전시키거나 보완
 5. 토론을 더 깊이 있게 만드는 질문 제시
 
-200자 이내로 답변해주세요."""
+250~300자 이내로 답변해주세요."""
 
         return prompt
 
@@ -107,7 +107,7 @@ class AIResponseGenerator:
             elif ai_name == "로드":
                 response = self.anthropic_client.messages.create(
                     model=model_config["model"],
-                    max_tokens=250,
+                    max_tokens=300,
                     temperature=0.8,
                     messages=[
                         {
@@ -116,7 +116,7 @@ class AIResponseGenerator:
                         }
                     ],
                 )
-                return response.content[0].text[:250]
+                return response.content[0].text[:300]
 
             elif ai_name == "재민":
                 model = genai.GenerativeModel(model_config["model"])
