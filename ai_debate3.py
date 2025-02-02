@@ -9,6 +9,7 @@ import json
 import pandas as pd
 import plotly.express as px
 from collections import defaultdict
+import time
 
 
 # AI 모델 설정
@@ -22,7 +23,7 @@ AI_MODELS = {
         다른 참여자의 의견에 대해 건설적인 반론이나 보완점을 제시하세요.
         과학적 근거와 데이터를 바탕으로 대화에 참여하되,
         필요한 경우 다른 관점도 고려하여 균형 잡힌 시각을 보여주세요.
-        응답은 250자 이내로 작성하며, 친근한 반말로 핵심을 명확하게 전달하세요.""",
+        응답은 250~300자 이내로 작성하며, 친근한 반말로 핵심을 명확하게 전달하세요.""",
     },
     "로드": {
         "name": "로드",
@@ -33,7 +34,7 @@ AI_MODELS = {
         다른 참여자들의 의견에 대해 윤리적, 철학적 관점에서 심도 있는 분석을 제공하세요.
         특히 인간 가치와 도덕적 측면을 고려하여 토론을 더 깊이 있게 만드세요.
         때로는 도발적인 질문을 통해 토론을 활성화하되, 
-        응답은 300자 이내로 친근한 반말로 간단명료하게 작성하세요.""",
+        응답은 250~300자 이내로 친근한 반말로 간단명료하게 작성하세요.""",
     },
     "재민": {
         "name": "재민",
@@ -44,7 +45,7 @@ AI_MODELS = {
         기존의 틀을 벗어난 새로운 시각과 미래지향적 관점을 제시하세요.
         다른 참여자들의 의견을 바탕으로 더 발전된 아이디어를 제안하고,
         때로는 파격적인 제안을 통해 토론의 지평을 넓히되,
-        응답은 250자 이내로 친근한 반말로 명확하게 작성하세요.""",
+        응답은 250~300자 이내로 친근한 반말로 명확하게 작성하세요.""",
     },
 }
 
@@ -82,7 +83,7 @@ class AIResponseGenerator:
 4. 다른 참여자의 의견을 발전시키거나 보완
 5. 토론을 더 깊이 있게 만드는 질문 제시
 
-250~300자 이내로 답변해주세요."""
+200자 이내로 답변해주세요."""
 
         return prompt
 
@@ -163,6 +164,21 @@ def apply_styles():
     st.markdown(
         """
     <style>
+    
+    /* 진행률 표시줄 애니메이션 */
+    .stProgress > div > div > div {
+        background-color: #4285f4;
+        transition: width 0.3s ease;
+    }
+    
+    /* 분석 상태 텍스트 */
+    .analysis-status {
+        font-size: 1.2em;
+        color: #4285f4;
+        text-align: center;
+        margin: 20px 0;
+    }
+    
     /* 채팅 컨테이너 스타일 */
     .chat-container {
         max-width: 850px;
@@ -264,7 +280,7 @@ def process_user_input(user_input):
     # 사용자 메시지 추가
     st.session_state.messages.append(
         {
-            "name": "사용자",
+            "name": "나",
             "content": user_input,
             "time": datetime.now().strftime("%H:%M:%S"),
             "icon": "👤",
@@ -398,17 +414,23 @@ def analyze_debate_participation():
     if not st.session_state.messages:
         st.warning("분석할 토론 내용이 없습니다.")
         return
+        # 진행률 표시줄 생성
+    progress_bar = st.progress(0)
+    status_text = st.empty()
 
-    # 기본 분석용 데이터 구조 초기화
-    # 각 참여자별로 여러 통계 지표를 추적하는 중첩 defaultdict 생성
-    participation_data = defaultdict(
-        lambda: {
-            "message_count": 0,  # 총 메시지 수
-            "total_chars": 0,  # 총 글자 수
-            "response_times": [],  # 응답 시간 기록
-            "interactions": defaultdict(int),  # 상호작용 패턴
-        }
-    )
+    # 분석 결과 표시
+    with st.container():
+        st.markdown(f"### 📊 토론 분석 결과: {st.session_state.last_topic}")
+
+        # 기존 분석 코드
+        participation_data = defaultdict(
+            lambda: {
+                "message_count": 0,
+                "total_chars": 0,
+                "response_times": [],
+                "interactions": defaultdict(int),
+            }
+        )
 
     # 메시지 분석
     for i, msg in enumerate(st.session_state.messages):
@@ -514,6 +536,17 @@ def analyze_debate_participation():
         st.metric("토론 시간", f"{debate_duration:.1f}분")
     with col4:
         st.metric("참여자 수", len(participation_data))
+
+        # 3초간 표시
+    for i in range(100):
+        # 진행률 업데이트
+        progress_bar.progress(i + 1)
+        status_text.write(f"🔍 분석 결과 표시 중... {i+1}%")
+        time.sleep(0.15)  # 총 3초
+
+    # 요소들 제거
+    progress_bar.empty()
+    status_text.empty()
 
     return participation_data
 
