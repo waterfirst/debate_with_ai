@@ -280,7 +280,7 @@ def process_user_input(user_input):
     # 사용자 메시지 추가
     st.session_state.messages.append(
         {
-            "name": "나",
+            "name": "사용자",
             "content": user_input,
             "time": datetime.now().strftime("%H:%M:%S"),
             "icon": "👤",
